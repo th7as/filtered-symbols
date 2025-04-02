@@ -2,6 +2,7 @@
     "name": "filtered-symbols",
     "displayName": "Filtered Symbols",
     "description": "Go to custom filtered symbols in editor",
+    "publisher": "th7as",
     "version": "1.0.1",
     "icon": "images/icon.png",
     "license": "MIT",
