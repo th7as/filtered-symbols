@@ -3,7 +3,7 @@
     "displayName": "Filtered Symbols",
     "description": "Go to custom filtered symbols in editor",
     "publisher": "th7as",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "icon": "images/icon.png",
     "license": "MIT",
     "repository": {
@@ -17,6 +17,7 @@
         "Other"
     ],
     "keywords": [
+        "goto",
         "filtered",
         "symbols"
     ],
@@ -33,9 +34,14 @@
         "configuration": {
             "title": "Filtered Symbols",
             "properties": {
+                "filteredSymbols.hideNestedFunctions": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "If enabled then hides functions nested under methods or other functions."
+                },
                 "filteredSymbols.maxLevelCount": {
                     "type": "number",
-                    "default": 2,
+                    "default": 4,
                     "description": "Defines the maximum number of nested levels of document symbols to show. Set to 0 to show all."
                 },
                 "filteredSymbols.symbolTypes": {
@@ -72,11 +78,24 @@
                         ]
                     },
                     "default": [
+                        "Module",
+                        "Namespace",
+                        "Package",
+                        "Interface",
                         "Class",
                         "Constructor",
                         "Method",
-                        "Interface",
-                        "Function"
+                        "Field",
+                        "Enum",
+                        "Function",
+                        "String",
+                        "Number",
+                        "Boolean",
+                        "Array",
+                        "Object",
+                        "Struct",
+                        "Event",
+                        "Operator"
                     ],
                     "description": "Defines the types of document symbols to show. Set to empty to show all."
                 }
