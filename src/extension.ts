@@ -85,7 +85,7 @@ async function pickDocumentSymbol(symbols: DocumentSymbol[], editor: TextEditor)
                 quickPick.activeItems = [activeItem];
             }
 
-            const originalRange = editor.visibleRanges?.length ? editor.visibleRanges[0] : undefined;
+            const originalRange = new Range(editor.selection.active, editor.selection.active);
             let firstChangeActive = true;
             let didAccept = false;
 
