@@ -140,7 +140,6 @@ async function pickDocumentSymbol(symbols: DocumentSymbol[], editor: TextEditor)
  * @param maxLevels - maximum number of nested levels to show (shows all if 0)
  * @param hideNestedFuncs - true to hide functions nested under methods or other functions
  * @param parent - parent document symbol for child items
- * @param parentNames - parent name hierarchy for child items
  *
  * @returns QuickPick items
  */
@@ -150,8 +149,7 @@ function getDocumentSymbols(
     level: number,
     maxLevels: number,
     hideNestedFuncs: boolean,
-    parent?: DocumentSymbol,
-    parentNames?: string
+    parent?: DocumentSymbol
 ): DocumentSymbolPickItem[] {
     if (!symbols?.length) {
         return [];
@@ -162,7 +160,7 @@ function getDocumentSymbols(
             return (
                 types.some((type) => symbol.kind === SymbolKind[type as keyof typeof SymbolKind]) &&
                 (!hideNestedFuncs ||
-                    symbol.kind !== SymbolKind.Function ||
+                    (symbol.kind !== SymbolKind.Method && symbol.kind !== SymbolKind.Function) ||
                     !parent ||
                     (parent.kind !== SymbolKind.Method && parent.kind !== SymbolKind.Function && parent.kind !== SymbolKind.Constructor))
             );
@@ -174,32 +172,17 @@ function getDocumentSymbols(
     return symbols.flatMap((symbol) => {
         const item: DocumentSymbolPickItem = {
             label: `${'   '.repeat(level - 1)}$(symbol-${getSymbolIcon(symbol)}) ${symbol.name}`,
-            description: getSymbolParentNames(parent, parentNames),
+            description: parent ? `   → ${parent.name}` : undefined,
             range: symbol.range,
         };
 
         if (symbol.children?.length && (maxLevels < 1 || level < maxLevels)) {
-            const children = getDocumentSymbols(symbol.children, types, level + 1, maxLevels, hideNestedFuncs, symbol, item.description);
+            const children = getDocumentSymbols(symbol.children, types, level + 1, maxLevels, hideNestedFuncs, symbol);
             return [item, children].flat();
         }
 
         return item;
     });
-}
-
-/**
- * Gets the parent name hierarchy of a document symbol.
- *
- * @param symbol - document symbol
- *
- * @returns parent name hierarchy
- */
-function getSymbolParentNames(symbol?: DocumentSymbol, parentNames?: string): string | undefined {
-    if (symbol) {
-        return parentNames ? `→ ${symbol.name} ${parentNames}` : `→ ${symbol.name}`;
-    }
-
-    return undefined;
 }
 
 /**
