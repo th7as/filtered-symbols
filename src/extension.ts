@@ -52,8 +52,8 @@ async function pickDocumentSymbol(symbols: DocumentSymbol[], editor: TextEditor)
     try {
         return await new Promise<void>((resolve) => {
             const config = workspace.getConfiguration('filteredSymbols');
-            const hideNestedFuncs = config.get<boolean>('hideNestedFunctions', true);
-            const maxLevels = config.get<number>('maxLevelCount', 4);
+            const hideNestedFuncs = config.get<boolean>('hideNestedFunctions', false);
+            const maxLevels = config.get<number>('maxLevelCount', 0);
             const symbolTypes = config.get<string[]>('symbolTypes', [
                 'Module',
                 'Namespace',

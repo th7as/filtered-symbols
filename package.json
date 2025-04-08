@@ -3,7 +3,7 @@
     "displayName": "Filtered Symbols",
     "description": "Go to custom filtered symbols in editor",
     "publisher": "th7as",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "icon": "images/icon.png",
     "license": "MIT",
     "repository": {
@@ -36,12 +36,12 @@
             "properties": {
                 "filteredSymbols.hideNestedFunctions": {
                     "type": "boolean",
-                    "default": true,
+                    "default": false,
                     "description": "If enabled then hides functions and methods nested under other functions or methods."
                 },
                 "filteredSymbols.maxLevelCount": {
                     "type": "number",
-                    "default": 4,
+                    "default": 0,
                     "description": "Defines the maximum number of nested levels of document symbols to show. Set to 0 to show all."
                 },
                 "filteredSymbols.symbolTypes": {

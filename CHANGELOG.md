@@ -1,5 +1,9 @@
 # Change Log
 
+## 1.0.5
+
+- Updated default values for settings
+
 ## 1.0.4
 
 - Fixed error for setting hideNestedFunctions which did not hide nested methods

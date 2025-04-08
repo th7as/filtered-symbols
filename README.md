@@ -14,6 +14,6 @@ This extension contributes the following command:
 
 This extension contributes the following settings:
 
-* `filteredSymbols.hideNestedFunctions`: If enabled then hides functions nested under methods or other functions.
+* `filteredSymbols.hideNestedFunctions`: If enabled then hides functions and methods nested under other functions or methods.
 * `filteredSymbols.maxLevelCount`: Defines the maximum number of nested levels of document symbols to show. Set to **0** to show all.
 * `filteredSymbols.symbolTypes`: Defines the types of document symbols to show. Set to **empty** to show all.
