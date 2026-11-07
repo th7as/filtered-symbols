@@ -10,6 +10,8 @@ This extension contributes the following command:
 
 * `filteredSymbols.goToSymbolInEditor`: Search and navigate custom filtered document symbols in the active editor and pick a symbol to go to.
 
+Use the buttons on the right side to toggle the display of certain symbols related to the following settings.
+
 ## Settings
 
 This extension contributes the following settings:

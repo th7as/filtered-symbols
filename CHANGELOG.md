@@ -1,5 +1,9 @@
 # Change Log
 
+## 1.1.0
+
+- Added buttons to toggle the display of certain symbols
+
 ## 1.0.5
 
 - Updated default values for settings

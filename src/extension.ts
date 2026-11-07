@@ -89,15 +89,9 @@ async function pickDocumentSymbol(symbols: DocumentSymbol[], editor: TextEditor)
                 'Operator',
             ]);
 
-            if (!showAllFunctions) {
-                showAllFunctions = { checked: !hideNestedFuncs };
-            }
-            if (!showAllLevels) {
-                showAllLevels = { checked: maxLevels < 1 };
-            }
-            if (!showAllTypes) {
-                showAllTypes = { checked: symbolTypes.length === 0 };
-            }
+            const showAllFunctionsToggle = (showAllFunctions ??= { checked: !hideNestedFuncs });
+            const showAllLevelsToggle = (showAllLevels ??= { checked: maxLevels < 1 });
+            const showAllTypesToggle = (showAllTypes ??= { checked: symbolTypes.length === 0 });
 
             const quickPick = window.createQuickPick<DocumentSymbolPickItem>();
             quickPick.placeholder = 'Type to search / Select to navigate';
@@ -107,7 +101,7 @@ async function pickDocumentSymbol(symbols: DocumentSymbol[], editor: TextEditor)
                     iconPath: new ThemeIcon('symbol-function'),
                     tooltip: 'Show functions/methods nested under other functions/methods',
                     location: QuickInputButtonLocation.Input,
-                    toggle: showAllFunctions,
+                    toggle: showAllFunctionsToggle,
                 },
             ];
             if (maxLevels > 0) {
@@ -115,7 +109,7 @@ async function pickDocumentSymbol(symbols: DocumentSymbol[], editor: TextEditor)
                     iconPath: new ThemeIcon('expand-all'),
                     tooltip: 'Show all nested levels',
                     location: QuickInputButtonLocation.Input,
-                    toggle: showAllLevels,
+                    toggle: showAllLevelsToggle,
                 });
             }
             if (symbolTypes.length > 0) {
@@ -123,18 +117,21 @@ async function pickDocumentSymbol(symbols: DocumentSymbol[], editor: TextEditor)
                     iconPath: new ThemeIcon('symbol-class'),
                     tooltip: 'Show all symbol types',
                     location: QuickInputButtonLocation.Input,
-                    toggle: showAllTypes,
+                    toggle: showAllTypesToggle,
                 });
             }
             quickPick.buttons = toggleButtons;
 
-            quickPick.items = getDocumentSymbols(
-                symbols,
-                showAllTypes.checked ? [] : symbolTypes,
-                1,
-                showAllLevels.checked ? 0 : maxLevels,
-                !showAllFunctions.checked,
-            );
+            const createItems = () =>
+                getDocumentSymbols(
+                    symbols,
+                    showAllTypesToggle.checked ? [] : symbolTypes,
+                    1,
+                    showAllLevelsToggle.checked ? 0 : maxLevels,
+                    !showAllFunctionsToggle.checked,
+                );
+
+            quickPick.items = createItems();
 
             let activeItem = getActiveSymbol(quickPick.items, editor);
             if (activeItem) {
@@ -148,17 +145,22 @@ async function pickDocumentSymbol(symbols: DocumentSymbol[], editor: TextEditor)
 
             disposables.push(
                 quickPick.onDidTriggerButton(() => {
-                    quickPick.items = getDocumentSymbols(
-                        symbols,
-                        showAllTypes?.checked ? [] : symbolTypes,
-                        1,
-                        showAllLevels?.checked ? 0 : maxLevels,
-                        !showAllFunctions?.checked,
-                    );
-                    activeItem = getActiveSymbol(quickPick.items, editor);
+                    const previousActiveItem = quickPick.activeItems[0];
+                    const items = createItems();
+                    quickPick.items = items;
+                    activeItem = previousActiveItem
+                        ? items.find((item) => item.label === previousActiveItem.label && item.range.isEqual(previousActiveItem.range))
+                        : undefined;
+                    activeItem ??= getActiveSymbol(items, editor);
+
                     if (activeItem) {
                         decoration = revealSymbol(activeItem, editor, decoration);
                         quickPick.activeItems = [activeItem];
+                    } else {
+                        quickPick.activeItems = [];
+                        if (decoration) {
+                            editor.setDecorations(decoration, []);
+                        }
                     }
                 }),
                 quickPick.onDidChangeActive((items) => {
@@ -166,9 +168,12 @@ async function pickDocumentSymbol(symbols: DocumentSymbol[], editor: TextEditor)
                         if (firstChangeActive && !activeItem) {
                             quickPick.activeItems = [];
                         } else {
+                            activeItem = items[0];
                             decoration = revealSymbol(items[0], editor, decoration);
                         }
                         firstChangeActive = false;
+                    } else if (decoration) {
+                        editor.setDecorations(decoration, []);
                     }
                 }),
                 quickPick.onDidAccept(() => {
@@ -298,11 +303,7 @@ function revealSymbol(
     editor: TextEditor,
     decoration: TextEditorDecorationType | undefined,
 ): TextEditorDecorationType {
-    if (decoration) {
-        decoration.dispose();
-    }
-
-    decoration = window.createTextEditorDecorationType({
+    decoration ??= window.createTextEditorDecorationType({
         backgroundColor: new ThemeColor('editor.rangeHighlightBackground'),
         isWholeLine: true,
     });
