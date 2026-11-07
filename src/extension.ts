@@ -2,6 +2,8 @@ import {
     Disposable,
     DocumentSymbol,
     ExtensionContext,
+    QuickInputButton,
+    QuickInputButtonLocation,
     QuickPickItem,
     Range,
     Selection,
@@ -9,6 +11,7 @@ import {
     TextEditor,
     TextEditorDecorationType,
     ThemeColor,
+    ThemeIcon,
     commands,
     window,
     workspace,
@@ -19,6 +22,13 @@ import {
  */
 interface DocumentSymbolPickItem extends QuickPickItem {
     range: Range;
+}
+
+/**
+ * Toggle button state for QuickPick buttons.
+ */
+interface InputButtonToggle {
+    checked: boolean;
 }
 
 /**
@@ -35,9 +45,13 @@ export function activate(context: ExtensionContext) {
                 const symbols = (await commands.executeCommand('vscode.executeDocumentSymbolProvider', editor.document.uri)) as DocumentSymbol[];
                 await pickDocumentSymbol(symbols, editor);
             }
-        })
+        }),
     );
 }
+
+let showAllFunctions: InputButtonToggle | undefined;
+let showAllLevels: InputButtonToggle | undefined;
+let showAllTypes: InputButtonToggle | undefined;
 
 /**
  * Lets the user pick a document symbol.
@@ -75,13 +89,56 @@ async function pickDocumentSymbol(symbols: DocumentSymbol[], editor: TextEditor)
                 'Operator',
             ]);
 
+            if (!showAllFunctions) {
+                showAllFunctions = { checked: !hideNestedFuncs };
+            }
+            if (!showAllLevels) {
+                showAllLevels = { checked: maxLevels < 1 };
+            }
+            if (!showAllTypes) {
+                showAllTypes = { checked: symbolTypes.length === 0 };
+            }
+
             const quickPick = window.createQuickPick<DocumentSymbolPickItem>();
             quickPick.placeholder = 'Type to search / Select to navigate';
-            quickPick.items = getDocumentSymbols(symbols, symbolTypes, 1, maxLevels, hideNestedFuncs);
 
-            const activeItem = getActiveSymbol(quickPick.items, editor);
+            const toggleButtons: QuickInputButton[] = [
+                {
+                    iconPath: new ThemeIcon('symbol-function'),
+                    tooltip: 'Show functions/methods nested under other functions/methods',
+                    location: QuickInputButtonLocation.Input,
+                    toggle: showAllFunctions,
+                },
+            ];
+            if (maxLevels > 0) {
+                toggleButtons.push({
+                    iconPath: new ThemeIcon('expand-all'),
+                    tooltip: 'Show all nested levels',
+                    location: QuickInputButtonLocation.Input,
+                    toggle: showAllLevels,
+                });
+            }
+            if (symbolTypes.length > 0) {
+                toggleButtons.push({
+                    iconPath: new ThemeIcon('symbol-class'),
+                    tooltip: 'Show all symbol types',
+                    location: QuickInputButtonLocation.Input,
+                    toggle: showAllTypes,
+                });
+            }
+            quickPick.buttons = toggleButtons;
+
+            quickPick.items = getDocumentSymbols(
+                symbols,
+                showAllTypes.checked ? [] : symbolTypes,
+                1,
+                showAllLevels.checked ? 0 : maxLevels,
+                !showAllFunctions.checked,
+            );
+
+            let activeItem = getActiveSymbol(quickPick.items, editor);
             if (activeItem) {
-                decoration = revealSymbol(activeItem, editor);
+                decoration = revealSymbol(activeItem, editor, decoration);
                 quickPick.activeItems = [activeItem];
             }
 
@@ -90,15 +147,26 @@ async function pickDocumentSymbol(symbols: DocumentSymbol[], editor: TextEditor)
             let didAccept = false;
 
             disposables.push(
+                quickPick.onDidTriggerButton(() => {
+                    quickPick.items = getDocumentSymbols(
+                        symbols,
+                        showAllTypes?.checked ? [] : symbolTypes,
+                        1,
+                        showAllLevels?.checked ? 0 : maxLevels,
+                        !showAllFunctions?.checked,
+                    );
+                    activeItem = getActiveSymbol(quickPick.items, editor);
+                    if (activeItem) {
+                        decoration = revealSymbol(activeItem, editor, decoration);
+                        quickPick.activeItems = [activeItem];
+                    }
+                }),
                 quickPick.onDidChangeActive((items) => {
                     if (items?.length) {
                         if (firstChangeActive && !activeItem) {
                             quickPick.activeItems = [];
                         } else {
-                            if (decoration) {
-                                decoration.dispose();
-                            }
-                            decoration = revealSymbol(items[0], editor);
+                            decoration = revealSymbol(items[0], editor, decoration);
                         }
                         firstChangeActive = false;
                     }
@@ -118,7 +186,7 @@ async function pickDocumentSymbol(symbols: DocumentSymbol[], editor: TextEditor)
                     }
                     quickPick.dispose();
                     resolve();
-                })
+                }),
             );
 
             quickPick.show();
@@ -149,7 +217,7 @@ function getDocumentSymbols(
     level: number,
     maxLevels: number,
     hideNestedFuncs: boolean,
-    parent?: DocumentSymbol
+    parent?: DocumentSymbol,
 ): DocumentSymbolPickItem[] {
     if (!symbols?.length) {
         return [];
@@ -221,11 +289,20 @@ function getActiveSymbol(symbols: readonly DocumentSymbolPickItem[], editor: Tex
  *
  * @param symbol - document symbol
  * @param editor - active editor
+ * @param decoration - active decoration
  *
  * @returns decoration for highlighting
  */
-function revealSymbol(symbol: DocumentSymbolPickItem, editor: TextEditor): TextEditorDecorationType {
-    const decoration = window.createTextEditorDecorationType({
+function revealSymbol(
+    symbol: DocumentSymbolPickItem,
+    editor: TextEditor,
+    decoration: TextEditorDecorationType | undefined,
+): TextEditorDecorationType {
+    if (decoration) {
+        decoration.dispose();
+    }
+
+    decoration = window.createTextEditorDecorationType({
         backgroundColor: new ThemeColor('editor.rangeHighlightBackground'),
         isWholeLine: true,
     });
